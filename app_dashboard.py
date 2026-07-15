@@ -125,6 +125,10 @@ def train_dual_models(data):
     
     return lr_model, rf_model, scaler, X_scaled_df
 
+# 1. 首先调用数据处理函数获取数据
+df_fe = load_and_transform_data()
+
+# 2. 然后再将处理后的数据传入模型训练函数
 lr_model, rf_model, scaler, X_scaled_df = train_dual_models(df_fe)
 
 # ==========================================
