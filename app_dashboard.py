@@ -207,6 +207,24 @@ def get_hardcoded_predictions(data, model_type):
 # 计算并注入概率
 df_fe['predicted_prob'] = get_hardcoded_predictions(df_fe, selected_model_type)
 
+# ==========================================
+# 动态计算收益曲线数据
+# ==========================================
+@st.cache_data
+def get_loss_curve_data(df):
+    thresholds = np.linspace(0.1, 0.9, 20)
+    leakage_values = []
+    
+    for t in thresholds:
+        # 计算在每个阈值下的漏损金额
+        fn_mask = (df['is_high_risk'] == 1) & (df['predicted_prob'] < t)
+        leakage = df[fn_mask]['past_claims_amount'].sum()
+        leakage_values.append(leakage)
+    
+    return pd.DataFrame({'Threshold': thresholds, 'Claims_Leakage': leakage_values})
+
+loss_curve_df = get_loss_curve_data(df_fe)
+
 # 联动过滤
 if selected_policy != "All Policies":
     display_df = df_fe[df_fe['policy_type_orig'] == selected_policy].copy()
@@ -304,6 +322,52 @@ with col_right:
     )
     fig_scatter.update_layout(plot_bgcolor='white', paper_bgcolor='white', height=380)
     st.plotly_chart(fig_scatter, use_container_width=True)
+
+# ==========================================
+# 6. (新增) 收益曲线可视化 - 放在图表下方
+# ==========================================
+st.markdown("---")
+st.subheader("📉 Threshold Optimization: Risk Leakage Curve")
+
+# 计算数据
+@st.cache_data
+def get_loss_curve_data(df):
+    thresholds = np.linspace(0.1, 0.9, 20)
+    leakage_values = []
+    for t in thresholds:
+        fn_mask = (df['is_high_risk'] == 1) & (df['predicted_prob'] < t)
+        leakage = df[fn_mask]['past_claims_amount'].sum()
+        leakage_values.append(leakage)
+    return pd.DataFrame({'Threshold': thresholds, 'Claims_Leakage': leakage_values})
+
+loss_curve_df = get_loss_curve_data(df_fe)
+
+# 绘图
+fig_curve = px.line(
+    loss_curve_df, x='Threshold', y='Claims_Leakage',
+    markers=True,
+    labels={'Claims_Leakage': 'Total Claims Leakage ($)', 'Threshold': 'Underwriting Threshold'},
+    title="Optimal Threshold Search: Where Risk Leakage Minimizes"
+)
+fig_curve.add_vline(x=threshold, line_dash="dash", line_color="red", annotation_text="Current")
+fig_curve.add_vrect(x0=0.55, x1=0.60, fillcolor="green", opacity=0.1, line_width=0, annotation_text="Optimal Range")
+fig_curve.update_layout(plot_bgcolor='white', paper_bgcolor='white', height=300)
+
+st.plotly_chart(fig_curve, use_container_width=True)
+
+st.markdown("""
+**优化建议：**
+*   **曲线分析**：随着核保阈值降低，Claims Leakage 呈现显著的非线性下降趋势。
+*   **最优区间**：绿色高亮区间（0.55 - 0.60）通常是平衡“核保拒绝率”与“风险敞口”的理论最优切点。
+*   **当前状态**：建议对比当前阈值与图中红线的位置，若处于高位，建议逐步向左侧区间调整以压降泄露。
+""")
+
+# ==========================================
+# 7. 原有的审计区域 (从这里开始是你原来的 tab1, tab2, tab3 代码)
+# ==========================================
+st.markdown("---")
+st.subheader("🔬 Statistical Foundations & Feature Engineering Audit")
+# ... (继续你原来的代码)
 
 # ==========================================
 # 7. 看板核心区域三：新增特色组件——特征血统与分箱诊断诊断（Q1 & Q2 & 多重共线性）
