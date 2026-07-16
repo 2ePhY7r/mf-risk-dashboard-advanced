@@ -224,64 +224,53 @@ df_fe['predicted_prob'] = get_hardcoded_predictions(df_fe, selected_model_type)
 # ==========================================
 # 动态计算收益曲线数据
 # ==========================================
+# --- 6. 修改曲线函数 ---
 @st.cache_data
 def get_loss_curve_data(df):
     thresholds = np.linspace(0.1, 0.9, 20)
     leakage_values = []
     
+    # 始终计算当前 df 下的总风险金额，以保持口径一致
+    total_potential = df[df['is_high_risk'] == 1]['past_claims_amount'].sum()
+    
     for t in thresholds:
-        # 计算在每个阈值下的漏损金额
-        fn_mask = (df['is_high_risk'] == 1) & (df['predicted_prob'] < t)
+        # 这里逻辑必须与 KPI 部分的 'total_escaped_mask' 逻辑一致
+        fn_mask = (df['predicted_prob'] < t) & (df['is_high_risk'] == 1)
         leakage = df[fn_mask]['past_claims_amount'].sum()
         leakage_values.append(leakage)
-    
+        
     return pd.DataFrame({'Threshold': thresholds, 'Claims_Leakage': leakage_values})
 
-loss_curve_df = get_loss_curve_data(df_fe)
-
-# 联动过滤
-if selected_policy != "All Policies":
-    display_df = df_fe[df_fe['policy_type_orig'] == selected_policy].copy()
-else:
-    display_df = df_fe.copy()
-
-# 根据阈值判定分类
-display_df['dynamic_pred'] = (display_df['predicted_prob'] >= threshold).astype(int)
+# 调用时，直接传入被侧边栏过滤后的 display_df
+loss_curve_df = get_loss_curve_data(display_df)
 
 # ==========================================
 # 5. 看板核心区域一：高管 KPI 看板 (Business KPIs)
 # ==========================================
-fn_mask = (display_df['is_high_risk'] == 1) & (display_df['dynamic_pred'] == 0)
-total_escaped_claims = display_df[fn_mask]['past_claims_amount'].sum()
-total_portfolio_claims = display_df['past_claims_amount'].sum()
+# --- 5. 修改 KPI 部分 ---
+# 统一使用被筛选后的 display_df
+# 计算：在当前阈值下，被正确拦截的赔付金额
+intercepted_mask = (display_df['predicted_prob'] >= threshold) & (display_df['is_high_risk'] == 1)
+total_escaped_mask = (display_df['predicted_prob'] < threshold) & (display_df['is_high_risk'] == 1)
 
-# 敏感度 (Recall)
-simulated_recall = (
-    ((display_df['is_high_risk'] == 1) & (display_df['dynamic_pred'] == 1)).sum() / 
-    (display_df['is_high_risk'] == 1).sum()
-)
+intercepted_claims = display_df[intercepted_mask]['past_claims_amount'].sum()
+total_escaped_claims = display_df[total_escaped_mask]['past_claims_amount'].sum()
+total_potential_claims = display_df[display_df['is_high_risk'] == 1]['past_claims_amount'].sum()
 
-# 赔付控制比例
-claim_exposure_ratio = (total_escaped_claims / total_portfolio_claims) * 100
+# 赔付率改善率 (拦截到的金额占总风险金额的比例)
+loss_ratio_improvement = (intercepted_claims / total_potential_claims) * 100 if total_potential_claims > 0 else 0
 
 kpi1, kpi2, kpi3 = st.columns(3)
 with kpi1:
-    st.metric(label="📊 Active Portfolio Size", value=f"{len(display_df):,} Policyholders")
+    st.metric(label="📊 Active Portfolio Size", value=f"{len(display_df):,} Policies")
 with kpi2:
-    st.metric(
-        label="🎯 Underwriting Sensitivity (Recall)", 
-        value=f"{simulated_recall*100:.2f}%",
-        delta=f"{(simulated_recall - 0.70)*100:.2f}% vs Standard Baseline" if threshold < 0.5 else "Higher Risk Leaking"
-    )
+    st.metric(label="💸 Intercepted Claims Value", value=f"${intercepted_claims:,.0f}")
 with kpi3:
     st.metric(
-        label="💸 Claims Leakage (Unmanaged Loss)", 
-        value=f"${total_escaped_claims:,.2f}",
-        delta=f"{claim_exposure_ratio:.2f}% of Portfolio Claims",
-        delta_color="inverse"
+        label="📉 Loss Ratio Improvement", 
+        value=f"{loss_ratio_improvement:.1f}%", 
+        delta=f"{loss_ratio_improvement - 40:.1f}% vs Target"
     )
-
-st.markdown("---")
 
 # ==========================================
 # 6. 看板核心区域二：多维深度图表（硬编码系数与重要性）
