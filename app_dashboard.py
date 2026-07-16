@@ -312,7 +312,8 @@ search_id = st.selectbox("Search Customer Identifier (ID):", options=display_df[
 customer_row = display_df[display_df['customer_id'] == search_id].iloc[0]
 
 c_col1, c_col2, c_col3, c_col4 = st.columns(4)
-c_col1.metric("Customer Age (Raw / Grouped)", f"{int(customer_row['raw_age'])} (Tier {int(customer_row['age_group'])})")
+# 修改后（使用正确的列名 'age'）:
+c_coll.metric("Customer Age (Raw / Grouped)", f"{int(customer_row['age'])} (Tier {int(customer_row['age_group'])})")
 c_col2.metric("Health Score (Objective)", f"{customer_row['health_score']:.1f} / 100")
 c_col3.metric("BMI Index (Raw / Grouped)", f"{customer_row['raw_bmi']:.2f} (Tier {int(customer_row['bmi_tier'])})")
 c_col4.metric("Model Risk Probability", f"{customer_row['predicted_prob']*100:.1f}%")
