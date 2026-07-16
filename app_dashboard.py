@@ -343,15 +343,16 @@ with col_right:
     st.plotly_chart(fig_scatter, use_container_width=True)
 
 # ==========================================
-# 6. (新增) 收益曲线可视化 - 放在图表下方
+# 6. 修正后的收益曲线可视化
 # ==========================================
 st.markdown("---")
 st.subheader("📉 Threshold Optimization: Risk Leakage Curve")
 
-# 计算数据
+# 修改：传入过滤后的 display_df，确保曲线只反映当前选定保单类别的数据
 @st.cache_data
 def get_loss_curve_data(df):
-    thresholds = np.linspace(0.1, 0.9, 20)
+    # 使用更细的颗粒度，使曲线更平滑
+    thresholds = np.linspace(0.1, 0.9, 50) 
     leakage_values = []
     for t in thresholds:
         fn_mask = (df['is_high_risk'] == 1) & (df['predicted_prob'] < t)
@@ -359,22 +360,23 @@ def get_loss_curve_data(df):
         leakage_values.append(leakage)
     return pd.DataFrame({'Threshold': thresholds, 'Claims_Leakage': leakage_values})
 
-loss_curve_df = get_loss_curve_data(df_fe)
+# 使用过滤后的 display_df 进行计算
+loss_curve_df = get_loss_curve_data(display_df)
 
 # 绘图
 fig_curve = px.line(
     loss_curve_df, x='Threshold', y='Claims_Leakage',
     markers=True,
     labels={'Claims_Leakage': 'Total Claims Leakage ($)', 'Threshold': 'Underwriting Threshold'},
-    title="Optimal Threshold Search: Where Risk Leakage Minimizes"
+    title=f"Optimal Threshold Search for {selected_policy}"
 )
-fig_curve.add_vline(x=threshold, line_dash="dash", line_color="red", annotation_text="Current")
-# 将原来的 0.55-0.60 替换为新的 0.30-0.45 控制区
+
+# 确保这里的 threshold 是侧边栏实时滑动的数值
+fig_curve.add_vline(x=threshold, line_dash="dash", line_color="red", annotation_text="Current Threshold")
+
 fig_curve.add_vrect(
     x0=0.30, x1=0.45, 
-    fillcolor="#48bb78", # 绿色高亮
-    opacity=0.2, 
-    line_width=0, 
+    fillcolor="#48bb78", opacity=0.2, line_width=0, 
     annotation_text="Strategic Control Zone"
 )
 fig_curve.update_layout(plot_bgcolor='white', paper_bgcolor='white', height=300)
