@@ -251,37 +251,37 @@ display_df['dynamic_pred'] = (display_df['predicted_prob'] >= threshold).astype(
 # ==========================================
 # 5. 看板核心区域一：高管 KPI 看板 (Business KPIs)
 # ==========================================
+# ==========================================
+# 5. 看板核心区域一：C-Suite 决策 KPI 看板
+# ==========================================
 fn_mask = (display_df['is_high_risk'] == 1) & (display_df['dynamic_pred'] == 0)
 total_escaped_claims = display_df[fn_mask]['past_claims_amount'].sum()
 total_portfolio_claims = display_df['past_claims_amount'].sum()
 
-# 敏感度 (Recall)
-simulated_recall = (
-    ((display_df['is_high_risk'] == 1) & (display_df['dynamic_pred'] == 1)).sum() / 
-    (display_df['is_high_risk'] == 1).sum()
-)
-
-# 赔付控制比例
-claim_exposure_ratio = (total_escaped_claims / total_portfolio_claims) * 100
+# 计算当前模型下的潜在赔付率改善 (假设：每识别出一个高风险客户可避免赔付，即为成本节约)
+# 这里模拟计算：如果模型介入，Loss Ratio 将如何变化
+baseline_claims = total_portfolio_claims
+optimized_claims = total_portfolio_claims - total_escaped_claims
+loss_ratio_reduction = (total_escaped_claims / baseline_claims) * 100 
 
 kpi1, kpi2, kpi3 = st.columns(3)
+
 with kpi1:
-    st.metric(label="📊 Active Portfolio Size", value=f"{len(display_df):,} Policyholders")
+    st.metric(label="📊 Active Portfolio Size", value=f"{len(display_df):,} Policies")
 with kpi2:
     st.metric(
-        label="🎯 Underwriting Sensitivity (Recall)", 
-        value=f"{simulated_recall*100:.2f}%",
-        delta=f"{(simulated_recall - 0.70)*100:.2f}% vs Standard Baseline" if threshold < 0.5 else "Higher Risk Leaking"
+        label="💸 Potential Claims Leakage", 
+        value=f"${total_escaped_claims:,.0f}",
+        help="当前阈值下未被拦截的潜在高风险赔付总额"
     )
 with kpi3:
+    # 这是 C-suite 最关注的业务结果卡片
     st.metric(
-        label="💸 Claims Leakage (Unmanaged Loss)", 
-        value=f"${total_escaped_claims:,.2f}",
-        delta=f"{claim_exposure_ratio:.2f}% of Portfolio Claims",
-        delta_color="inverse"
+        label="📉 Estimated Loss Ratio Reduction", 
+        value=f"-{loss_ratio_reduction:.1f}%",
+        delta="Optimize to reach -5%",
+        delta_color="normal" # 绿色表示负值，符合赔付率降低的逻辑
     )
-
-st.markdown("---")
 
 # ==========================================
 # 6. 看板核心区域二：多维深度图表（硬编码系数与重要性）
