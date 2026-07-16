@@ -356,10 +356,10 @@ fig_curve.update_layout(plot_bgcolor='white', paper_bgcolor='white', height=300)
 st.plotly_chart(fig_curve, use_container_width=True)
 
 st.markdown("""
-**优化建议：**
-*   **曲线分析**：随着核保阈值降低，Claims Leakage 呈现显著的非线性下降趋势。
-*   **最优区间**：绿色高亮区间（0.55 - 0.60）通常是平衡“核保拒绝率”与“风险敞口”的理论最优切点。
-*   **当前状态**：建议对比当前阈值与图中红线的位置，若处于高位，建议逐步向左侧区间调整以压降泄露。
+**Optimization Recommendations:**
+*   Trend Analysis: Claims Leakage demonstrates a significant non-linear downward trend as the underwriting threshold is reduced.
+*   Optimal Range: The highlighted green zone (0.55 – 0.60) represents the theoretical "sweet spot," effectively balancing underwriting rejection rates against risk exposure.
+*   Current Status: Compare the current threshold (red dashed line) with the optimal range; if positioned in the higher-risk zone, consider a gradual adjustment toward the left to further mitigate unmanaged loss.
 """)
 
 # ==========================================
