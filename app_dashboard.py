@@ -350,16 +350,19 @@ st.subheader("📉 Threshold Optimization: Risk Leakage Curve")
 
 # 修改：传入过滤后的 display_df，确保曲线只反映当前选定保单类别的数据
 @st.cache_data
-def get_loss_curve_data(df):
-    # 使用更细的颗粒度，使曲线更平滑
-    thresholds = np.linspace(0.1, 0.9, 50) 
+def get_loss_curve_data(df, current_threshold):
+    # 将滑块的实时值强制加入到计算序列中，确保它一定会被计算
+    thresholds = np.linspace(0.1, 0.9, 50)
+    if current_threshold not in thresholds:
+        thresholds = np.sort(np.append(thresholds, current_threshold))
+        
     leakage_values = []
     for t in thresholds:
         fn_mask = (df['is_high_risk'] == 1) & (df['predicted_prob'] < t)
         leakage = df[fn_mask]['past_claims_amount'].sum()
         leakage_values.append(leakage)
+    
     return pd.DataFrame({'Threshold': thresholds, 'Claims_Leakage': leakage_values})
-
 # 使用过滤后的 display_df 进行计算
 loss_curve_df = get_loss_curve_data(display_df)
 
