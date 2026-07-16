@@ -32,7 +32,7 @@ st.markdown("---")
 # ==========================================
 @st.cache_data
 def load_and_transform_data():
-   data_path = "insurance_test_data.xlsx"
+    data_path = "insurance_test_data.xlsx"
     df = pd.read_excel(data_path, sheet_name="Sheet1")
     df_clean = df.copy()
     
