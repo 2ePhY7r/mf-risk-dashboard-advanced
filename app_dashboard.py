@@ -32,36 +32,34 @@ st.markdown("---")
 # ==========================================
 @st.cache_data
 def load_and_transform_data():
-    # 模拟读取或实际读取
     data_path = "insurance_test_data.xlsx"
     df = pd.read_excel(data_path, sheet_name="Sheet1")
     
-    # Q1 决策：用中位数填充
-    median_income = df['annual_income'].median()
-    df_clean = df.copy()
-    df_clean['annual_income'] = df_clean['annual_income'].fillna(median_income)
+    # 1. 基础填充：不仅填充 annual_income，也要确保关键特征无空值
+    df['annual_income'] = df['annual_income'].fillna(df['annual_income'].median())
     
-    # 保存原始特征供前端下钻展示
+    # 【关键修复】：填充年龄和 BMI 的缺失值，避免转换报错
+    df['age'] = df['age'].fillna(df['age'].mean())
+    df['bmi'] = df['bmi'].fillna(df['bmi'].mean())
+    
+    # 保存原始数据
+    df_clean = df.copy()
     df_clean['raw_age'] = df_clean['age']
     df_clean['raw_bmi'] = df_clean['bmi']
     df_clean['policy_type_orig'] = df_clean['policy_type']
     
-    # ---------------------------------------------------------
-    # 核心特征工程 9 大特征重建 (与 Word 报告完全对齐)
-    # ---------------------------------------------------------
-    # 1. age_group (精算生命阶段分箱)
+    # 2. 现在再进行分箱，就不会因为有空值而报错了
     df_clean['age_group'] = pd.cut(
         df_clean['age'], 
         bins=[0, 35, 50, 65, 120], 
         labels=[0, 1, 2, 3]
-    ).astype(int)
+    ).fillna(0).astype(int) # 使用 fillna(0) 兜底空值
     
-    # 2. bmi_tier (WHO & JASSO 临床医学标准分箱)
     df_clean['bmi_tier'] = pd.cut(
         df_clean['bmi'], 
         bins=[0, 25.0, 30.0, 100.0], 
         labels=[0, 1, 2]
-    ).astype(int)
+    ).fillna(0).astype(int)
     
     # 3. health_deficit (次标体风险放大器)
     df_clean['health_deficit'] = (100 - df_clean['health_score']) * df_clean['has_chronic_disease']
