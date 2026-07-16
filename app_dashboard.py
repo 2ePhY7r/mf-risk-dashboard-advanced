@@ -11,7 +11,7 @@ from sklearn.model_selection import train_test_split
 # ==========================================
 # 1. 页面配置与全局商务化样式
 # ==========================================
-st.set_page_config(page_title="MetLife Risk Sandbox v2.0", layout="wide")
+st.set_page_config(page_title="MetLife Risk Sandbox", layout="wide")
 
 st.markdown("""
     <style>
@@ -23,7 +23,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🛡️ MetLife Premium Risk & Underwriting Optimization Sandbox (v2.0)")
+st.title("🛡️ MetLife Premium Risk Optimization Sandbox")
 st.caption("Enhanced with Clinical Binning Guidelines, Advanced Feature Engineering, and Dual-Model Benchmarking (LR vs. RF).")
 st.markdown("---")
 
