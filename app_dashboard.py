@@ -32,11 +32,12 @@ st.markdown("---")
 # ==========================================
 @st.cache_data
 def load_and_transform_data():
-    data_path = "insurance_test_data.xlsx"
+   data_path = "insurance_test_data.xlsx"
     df = pd.read_excel(data_path, sheet_name="Sheet1")
-    
-    # 强制统一使用与模型跑分代码一致的 [中位数] 填充策略
     df_clean = df.copy()
+    
+    # [新增] 显式保留原始列，供 UI 下拉菜单使用
+    df_clean['policy_type_orig'] = df_clean['policy_type']
     df_clean['annual_income'] = df_clean['annual_income'].fillna(df['annual_income'].median())
     df_clean['age'] = df_clean['age'].fillna(df['age'].median()) # 修正：由 mean 改为 median
     df_clean['bmi'] = df_clean['bmi'].fillna(df['bmi'].median()) # 修正：由 mean 改为 median
