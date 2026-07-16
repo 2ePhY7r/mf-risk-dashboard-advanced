@@ -251,38 +251,45 @@ display_df['dynamic_pred'] = (display_df['predicted_prob'] >= threshold).astype(
 # ==========================================
 # 5. 看板核心区域一：高管 KPI 看板 (Business KPIs)
 # ==========================================
+# 计算指标
 fn_mask = (display_df['is_high_risk'] == 1) & (display_df['dynamic_pred'] == 0)
 total_escaped_claims = display_df[fn_mask]['past_claims_amount'].sum()
 total_portfolio_claims = display_df['past_claims_amount'].sum()
 
 # 敏感度 (Recall)
-simulated_recall = (
-    ((display_df['is_high_risk'] == 1) & (display_df['dynamic_pred'] == 1)).sum() / 
-    (display_df['is_high_risk'] == 1).sum()
-)
+simulated_recall = (((display_df['is_high_risk'] == 1) & (display_df['dynamic_pred'] == 1)).sum() / (display_df['is_high_risk'] == 1).sum())
 
 # 赔付控制比例
 claim_exposure_ratio = (total_escaped_claims / total_portfolio_claims) * 100
 
-kpi1, kpi2, kpi3 = st.columns(3)
+# 【新增】：计算预估赔付率降低 (这里假设 baseline 的 Loss Ratio 为 65%)
+# 逻辑：当前漏损占比 vs 基准漏损占比的差值
+estimated_loss_ratio_reduction = (0.20 - (total_escaped_claims / total_portfolio_claims)) * 100
+
+# 修改为 4 列
+kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+
 with kpi1:
-    st.metric(label="📊 Active Portfolio Size", value=f"{len(display_df):,} Policyholders")
+    st.metric(label="📊 Active Portfolio Size", value=f"{len(display_df):,} ")
 with kpi2:
-    # 增加定义悬停文字的变量
-    baseline_help_text = "Standard Baseline: Refers to the historical benchmark of 70% sensitivity (Recall) achieved by the previous manual underwriting protocol."
-    
     st.metric(
-        label="🎯 Underwriting Sensitivity (Recall)", 
+        label="🎯 Underwriting Sensitivity", 
         value=f"{simulated_recall*100:.2f}%",
-        delta=f"{(simulated_recall - 0.70)*100:.2f}% vs Standard Baseline" if threshold < 0.5 else "Higher Risk Leaking",
-        help=baseline_help_text  # 这一行就是添加悬停功能的关键
+        delta=f"{(simulated_recall - 0.70)*100:.2f}% vs Baseline"
     )
 with kpi3:
     st.metric(
-        label="💸 Claims Leakage (Unmanaged Loss)", 
-        value=f"${total_escaped_claims:,.2f}",
-        delta=f"{claim_exposure_ratio:.2f}% of Portfolio Claims",
+        label="💸 Claims Leakage", 
+        value=f"${total_escaped_claims:,.0f}",
+        delta=f"{claim_exposure_ratio:.2f}% of Claims",
         delta_color="inverse"
+    )
+with kpi4:
+    # 新增的第四个卡片
+    st.metric(
+        label="📉 Est. Loss Ratio Impact", 
+        value=f"{estimated_loss_ratio_reduction:.2f}%", 
+        delta="Improved" if estimated_loss_ratio_reduction > 0 else "Degraded"
     )
 
 st.markdown("---")
