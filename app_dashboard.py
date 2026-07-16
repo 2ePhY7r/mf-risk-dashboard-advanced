@@ -252,31 +252,38 @@ display_df['dynamic_pred'] = (display_df['predicted_prob'] >= threshold).astype(
 # 5. 看板核心区域一：高管 KPI 看板 (Business KPIs)
 # ==========================================
 # ==========================================
-# 修正后的逻辑：计算拦截的风险赔付占比
+# 修正后的逻辑：确保逻辑与业务常识一致
 # ==========================================
 
-# 1. 拦截到的赔付总额 (拦截成功的部分)
-intercepted_claims = display_df[display_df['dynamic_pred'] == 1]['past_claims_amount'].sum()
+# 1. 核心计算：根据当前阈值，判断哪些人被“预测为高风险并拦截”
+# 阈值越低 (例如 0.3)，被拦截的人越多，intercepted_claims 数额越大
+display_df['is_intercepted'] = (display_df['predicted_prob'] >= threshold).astype(int)
 
-# 2. 潜在赔付总额 (总赔付量)
-total_claims = display_df['past_claims_amount'].sum()
+# 2. 计算被拦截的赔付总额 (拦截到的风险赔付)
+# 注意：只有当拦截到且该客户确实是高风险 (is_high_risk == 1) 时，才叫“成功拦截赔付”
+intercepted_claims = display_df[(display_df['is_intercepted'] == 1) & (display_df['is_high_risk'] == 1)]['past_claims_amount'].sum()
 
-# 3. 赔付率改善率 (拦截到的占比越高，说明核保控制越好，赔付率减少越明显)
-# 逻辑：拦截了多少比例的赔付金额，就相当于降低了多少赔付率
-loss_ratio_reduction = (intercepted_claims / total_claims) * 100 if total_claims > 0 else 0
+# 3. 潜在赔付总额 (如果不拦截，本来会发生的总赔付)
+total_claims = display_df[display_df['is_high_risk'] == 1]['past_claims_amount'].sum()
 
-# 4. 优化后的 KPI 展示
+# 4. 赔付率改善率 (成功挽回的赔付占总潜在赔付的比例)
+# 逻辑：阈值越低，intercepted_claims 越多 -> 改善率越高 (符合业务预期)
+loss_ratio_improvement = (intercepted_claims / total_claims) * 100 if total_claims > 0 else 0
+
+# ==========================================
+# 更新 KPI 展示卡片
+# ==========================================
 kpi1, kpi2, kpi3 = st.columns(3)
 with kpi1:
     st.metric(label="📊 Active Portfolio Size", value=f"{len(display_df):,} Policies")
 with kpi2:
-    st.metric(label="💸 Intercepted Claims Value", value=f"${intercepted_claims:,.0f}", help="模型通过核保拦截下的潜在赔付金额")
+    st.metric(label="💸 Successful Claims Intercepted", value=f"${intercepted_claims:,.0f}", help="成功拦截到的高风险赔付总额")
 with kpi3:
     st.metric(
-        label="📉 Estimated Loss Ratio Improvement", 
-        value=f"+{loss_ratio_reduction:.1f}%", # 变成正向增长，表示改善效果
-        delta="Target: > 40%", 
-        delta_color="normal" # 绿色表示效果提升
+        label="📉 Loss Ratio Improvement", 
+        value=f"{loss_ratio_improvement:.1f}%", 
+        delta=f"{loss_ratio_improvement - 30:.1f}% vs Target", # 假设目标改善是 30%
+        delta_color="normal"
     )
 
 # ==========================================
