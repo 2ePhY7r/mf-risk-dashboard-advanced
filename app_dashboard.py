@@ -244,22 +244,21 @@ def get_loss_curve_data(df):
 # 调用时，直接传入被侧边栏过滤后的 display_df
 loss_curve_df = get_loss_curve_data(display_df)
 
-# ==========================================
-# 5. 看板核心区域一：高管 KPI 看板 (Business KPIs)
-# ==========================================
-# --- 5. 修改 KPI 部分 ---
-# 统一使用被筛选后的 display_df
-# 计算：在当前阈值下，被正确拦截的赔付金额
+# ==============================================================================
+# 5 & 6. 整合 KPI 计算与收益曲线逻辑 (统一数据口径)
+# ==============================================================================
+
+# 统一预计算掩码，确保所有指标引用一致
 intercepted_mask = (display_df['predicted_prob'] >= threshold) & (display_df['is_high_risk'] == 1)
 total_escaped_mask = (display_df['predicted_prob'] < threshold) & (display_df['is_high_risk'] == 1)
-
-intercepted_claims = display_df[intercepted_mask]['past_claims_amount'].sum()
-total_escaped_claims = display_df[total_escaped_mask]['past_claims_amount'].sum()
 total_potential_claims = display_df[display_df['is_high_risk'] == 1]['past_claims_amount'].sum()
 
-# 赔付率改善率 (拦截到的金额占总风险金额的比例)
+# 计算核心 KPI 指标
+intercepted_claims = display_df[intercepted_mask]['past_claims_amount'].sum()
+total_escaped_claims = display_df[total_escaped_mask]['past_claims_amount'].sum()
 loss_ratio_improvement = (intercepted_claims / total_potential_claims) * 100 if total_potential_claims > 0 else 0
 
+# --- KPI 卡片区域 ---
 kpi1, kpi2, kpi3 = st.columns(3)
 with kpi1:
     st.metric(label="📊 Active Portfolio Size", value=f"{len(display_df):,} Policies")
@@ -269,8 +268,50 @@ with kpi3:
     st.metric(
         label="📉 Loss Ratio Improvement", 
         value=f"{loss_ratio_improvement:.1f}%", 
-        delta=f"{loss_ratio_improvement - 40:.1f}% vs Target"
+        delta=f"{loss_ratio_improvement - 30:.1f}% vs Target",
+        delta_color="normal"
     )
+
+st.markdown("---")
+st.subheader("📉 Threshold Optimization: Risk Leakage Curve")
+
+# --- 曲线数据计算函数 (定义在调用之前) ---
+@st.cache_data
+def get_loss_curve_data(df):
+    thresholds = np.linspace(0.1, 0.9, 20)
+    leakage_values = []
+    # 始终基于传入的 df 计算，确保过滤一致
+    for t in thresholds:
+        fn_mask = (df['predicted_prob'] < t) & (df['is_high_risk'] == 1)
+        leakage = df[fn_mask]['past_claims_amount'].sum()
+        leakage_values.append(leakage)
+    return pd.DataFrame({'Threshold': thresholds, 'Claims_Leakage': leakage_values})
+
+# 调用函数
+loss_curve_df = get_loss_curve_data(display_df)
+
+# --- 绘制曲线 ---
+fig_curve = px.line(
+    loss_curve_df, x='Threshold', y='Claims_Leakage',
+    markers=True,
+    labels={'Claims_Leakage': 'Total Claims Leakage ($)', 'Threshold': 'Underwriting Threshold'},
+    title="Optimal Threshold Search: Where Risk Leakage Minimizes"
+)
+fig_curve.add_vline(x=threshold, line_dash="dash", line_color="red", annotation_text="Current")
+fig_curve.add_vrect(x0=0.30, x1=0.45, fillcolor="#A4CE4E", opacity=0.3, line_width=0)
+fig_curve.update_layout(plot_bgcolor='white', paper_bgcolor='white', height=300)
+
+st.plotly_chart(fig_curve, use_container_width=True)
+
+st.markdown("""
+**Operational Strategy:**
+*   **Threshold Calibration**: The **0.30–0.45 zone** represents our 'Strategic Control Zone'. 
+*   **Risk Mitigation**: Adjusting thresholds below 0.45 significantly cuts unmanaged Claims Leakage.
+*   **Tri-Tier Routing**: 
+    *   **< 0.30**: Straight-through processing (Auto-approve).
+    *   **0.30–0.45**: Risk-based pricing (Surcharge).
+    *   **> 0.45**: Deep-dive underwriting (Manual Review).
+""")
 
 # ==========================================
 # 6. 看板核心区域二：多维深度图表（硬编码系数与重要性）
@@ -326,54 +367,6 @@ with col_right:
     )
     fig_scatter.update_layout(plot_bgcolor='white', paper_bgcolor='white', height=380)
     st.plotly_chart(fig_scatter, use_container_width=True)
-
-# ==========================================
-# 6. (新增) 收益曲线可视化 - 放在图表下方
-# ==========================================
-st.markdown("---")
-st.subheader("📉 Threshold Optimization: Risk Leakage Curve")
-
-# 计算数据
-@st.cache_data
-def get_loss_curve_data(df):
-    thresholds = np.linspace(0.1, 0.9, 20)
-    leakage_values = []
-    for t in thresholds:
-        fn_mask = (df['is_high_risk'] == 1) & (df['predicted_prob'] < t)
-        leakage = df[fn_mask]['past_claims_amount'].sum()
-        leakage_values.append(leakage)
-    return pd.DataFrame({'Threshold': thresholds, 'Claims_Leakage': leakage_values})
-
-loss_curve_df = get_loss_curve_data(df_fe)
-
-# 绘图
-fig_curve = px.line(
-    loss_curve_df, x='Threshold', y='Claims_Leakage',
-    markers=True,
-    labels={'Claims_Leakage': 'Total Claims Leakage ($)', 'Threshold': 'Underwriting Threshold'},
-    title="Optimal Threshold Search: Where Risk Leakage Minimizes"
-)
-fig_curve.add_vline(x=threshold, line_dash="dash", line_color="red", annotation_text="Current")
-# 将原来的 0.55-0.60 替换为新的 0.30-0.45 控制区
-fig_curve.add_vrect(
-    x0=0.30, x1=0.45, 
-    fillcolor="#A4CE4E", # 替换为标志性的青柠绿
-    opacity=0.3, 
-    line_width=0
-)
-fig_curve.update_layout(plot_bgcolor='white', paper_bgcolor='white', height=300)
-
-st.plotly_chart(fig_curve, use_container_width=True)
-
-st.markdown("""
-**Operational Strategy:**
-*   **Threshold Calibration**: The **0.30–0.45 zone** represents our 'Strategic Control Zone'. 
-*   **Risk Mitigation**: Adjusting thresholds below 0.45 significantly cuts unmanaged Claims Leakage.
-*   **Tri-Tier Routing**: 
-    *   **< 0.30**: Straight-through processing (Auto-approve).
-    *   **0.30–0.45**: Risk-based pricing (Surcharge).
-    *   **> 0.45**: Deep-dive underwriting (Manual Review).
-""")
 
 # ==========================================
 # 7. 看板核心区域三：新增特色组件——特征血统与分箱诊断诊断（Q1 & Q2 & 多重共线性）
