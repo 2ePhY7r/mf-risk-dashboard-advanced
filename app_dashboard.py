@@ -11,11 +11,25 @@ st.set_page_config(page_title="Mf Risk Sandbox", layout="wide")
 
 st.markdown("""
     <style>
-    .main { background-color: #ffffff; }
-    h1 { color: #003366; font-family: 'Helvetica Neue', Arial, sans-serif; font-weight: 700; }
-    h2, h3 { color: #005596; font-family: 'Helvetica Neue', Arial, sans-serif; }
-    .stSlider { padding-top: 1rem; }
-    div[data-testid="stMetricValue"] { font-size: 24px; color: #003366; }
+    /* 全局背景色 */
+    .main { background-color: #F8F9FA; }
+    
+    /* 标题样式：MetLife Blue */
+    h1 { color: #0061A0 !important; font-family: 'Segoe UI', Arial, sans-serif; font-weight: 700; }
+    h2, h3 { color: #0061A0 !important; font-family: 'Segoe UI', Arial, sans-serif; }
+    
+    /* 指标看板样式：增加边框圆角 */
+    div[data-testid="stMetricValue"] { font-size: 28px !important; color: #0061A0 !important; font-weight: 700; }
+    div[data-testid="stMetricDelta"] { color: #555555 !important; }
+    
+    /* 按钮与高亮区域：MetLife Green */
+    .stSlider [data-baseweb="slider"] { accent-color: #A4CE4E; }
+    
+    /* 成功与错误提示框颜色匹配 */
+    .stAlert-success { border-left: 5px solid #A4CE4E !important; }
+    
+    /* 自定义边框与卡片容器 */
+    .css-1r6slp0 { border: 1px solid #E0E0E0; border-radius: 8px; padding: 15px; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -286,7 +300,8 @@ with col_left:
         
         fig_imp = px.bar(
             imp_df, x='Odds Ratio (OR)', y='Feature', orientation='h',
-            color='Odds Ratio (OR)', color_continuous_scale='RdBu_r',
+            color='Odds Ratio (OR)', 
+            color_continuous_scale=[[0, "#A4CE4E"], [1, "#0061A0"]], # 绿色到蓝色的渐变
             text_auto='.4f',
             title="Logistic Regression Odds Ratios (OR > 1.0 is Risk Multiplier)"
         )
@@ -300,7 +315,7 @@ with col_left:
         
         fig_imp = px.bar(
             imp_df, x='Relative Importance', y='Feature', orientation='h',
-            color='Relative Importance', color_continuous_scale='Blues',
+            color_discrete_map={0: "#0061A0", 1: "#A4CE4E"},
             text_auto='.4f',
             title="Random Forest Relative Feature Importance Weights (True Model Outputs)"
         )
@@ -353,10 +368,9 @@ fig_curve.add_vline(x=threshold, line_dash="dash", line_color="red", annotation_
 # 将原来的 0.55-0.60 替换为新的 0.30-0.45 控制区
 fig_curve.add_vrect(
     x0=0.30, x1=0.45, 
-    fillcolor="#48bb78", # 绿色高亮
-    opacity=0.2, 
-    line_width=0, 
-    annotation_text="Strategic Control Zone"
+    fillcolor="#A4CE4E", # 替换为标志性的青柠绿
+    opacity=0.3, 
+    line_width=0
 )
 fig_curve.update_layout(plot_bgcolor='white', paper_bgcolor='white', height=300)
 
