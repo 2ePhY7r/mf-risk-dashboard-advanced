@@ -365,11 +365,11 @@ st.plotly_chart(fig_curve, use_container_width=True)
 st.markdown("""
 **Operational Strategy:**
 *   **Threshold Calibration**: The **0.30–0.45 zone** represents our 'Strategic Control Zone'. 
-*   **Risk Mitigation**: Adjusting thresholds below 0.45 significantly cuts unmanaged Claims Leakage[cite: 1].
+*   **Risk Mitigation**: Adjusting thresholds below 0.45 significantly cuts unmanaged Claims Leakage.
 *   **Tri-Tier Routing**: 
     *   **< 0.30**: Straight-through processing (Auto-approve).
-    *   **0.30–0.45**: Risk-based pricing (Surcharge)[cite: 1, 2].
-    *   **> 0.45**: Deep-dive underwriting (Manual Review)[cite: 2].
+    *   **0.30–0.45**: Risk-based pricing (Surcharge).
+    *   **> 0.45**: Deep-dive underwriting (Manual Review).
 """)
 
 # ==========================================
