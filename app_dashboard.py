@@ -33,18 +33,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 标题区域：Logo + 标题并上移 ---
-# 使用负边距将整体上移 (top: -50px)
-st.markdown("""
-    <div style="margin-top: -50px;">
-        <div style="display: flex; align-items: center;">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/1/1b/MetLife_logo.svg" width="60" style="margin-right: 20px;">
-            <h1 style="margin: 0;">MetLife Premium Risk Optimization Sandbox</h1>
-        </div>
-        <p style="margin-top: 5px; color: #666;">Enhanced with Clinical Binning Guidelines, Advanced Feature Engineering, and Dual-Model Benchmarking (LR vs. RF).</p>
-    </div>
-""", unsafe_allow_html=True)
-
 st.title("MetLife Premium Risk Optimization Sandbox")
 st.caption("Enhanced with Clinical Binning Guidelines, Advanced Feature Engineering, and Dual-Model Benchmarking (LR vs. RF).")
 st.markdown("---")
