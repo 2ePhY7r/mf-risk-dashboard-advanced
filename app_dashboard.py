@@ -7,33 +7,19 @@ import plotly.graph_objects as go
 # ==========================================
 # 1. 页面配置与全局商务化样式
 # ==========================================
-st.set_page_config(page_title="Optimized MetLife Risk Sandbox", layout="wide")
+st.set_page_config(page_title="Mf Risk Sandbox", layout="wide")
 
 st.markdown("""
     <style>
-    /* 全局背景色 */
-    .main { background-color: #F8F9FA; }
-    
-    /* 标题样式：MetLife Blue */
-    h1 { color: #0061A0 !important; font-family: 'Segoe UI', Arial, sans-serif; font-weight: 700; }
-    h2, h3 { color: #0061A0 !important; font-family: 'Segoe UI', Arial, sans-serif; }
-    
-    /* 指标看板样式：增加边框圆角 */
-    div[data-testid="stMetricValue"] { font-size: 28px !important; color: #0061A0 !important; font-weight: 700; }
-    div[data-testid="stMetricDelta"] { color: #555555 !important; }
-    
-    /* 按钮与高亮区域：MetLife Green */
-    .stSlider [data-baseweb="slider"] { accent-color: #A4CE4E; }
-    
-    /* 成功与错误提示框颜色匹配 */
-    .stAlert-success { border-left: 5px solid #A4CE4E !important; }
-    
-    /* 自定义边框与卡片容器 */
-    .css-1r6slp0 { border: 1px solid #E0E0E0; border-radius: 8px; padding: 15px; }
+    .main { background-color: #ffffff; }
+    h1 { color: #003366; font-family: 'Helvetica Neue', Arial, sans-serif; font-weight: 700; }
+    h2, h3 { color: #005596; font-family: 'Helvetica Neue', Arial, sans-serif; }
+    .stSlider { padding-top: 1rem; }
+    div[data-testid="stMetricValue"] { font-size: 24px; color: #003366; }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🛡️ MetLife Premium Risk Optimization Sandbox")
+st.title("🛡️ Mf Premium Risk Optimization Sandbox")
 st.caption("Enhanced with Clinical Binning Guidelines, Advanced Feature Engineering, and Dual-Model Benchmarking (LR vs. RF).")
 st.markdown("---")
 
@@ -221,76 +207,67 @@ def get_hardcoded_predictions(data, model_type):
 # 计算并注入概率
 df_fe['predicted_prob'] = get_hardcoded_predictions(df_fe, selected_model_type)
 
-# ==============================================================================
-# 5 & 6. 整合 KPI 计算与收益曲线逻辑 (修复 NameError 的稳妥方案)
-# ==============================================================================
-
-# --- 步骤 1: 必须最先定义函数 ---
+# ==========================================
+# 动态计算收益曲线数据
+# ==========================================
 @st.cache_data
 def get_loss_curve_data(df):
     thresholds = np.linspace(0.1, 0.9, 20)
     leakage_values = []
+    
     for t in thresholds:
-        fn_mask = (df['predicted_prob'] < t) & (df['is_high_risk'] == 1)
+        # 计算在每个阈值下的漏损金额
+        fn_mask = (df['is_high_risk'] == 1) & (df['predicted_prob'] < t)
         leakage = df[fn_mask]['past_claims_amount'].sum()
         leakage_values.append(leakage)
+    
     return pd.DataFrame({'Threshold': thresholds, 'Claims_Leakage': leakage_values})
 
-# --- 步骤 2: 增加保护检查，防止 display_df 未加载时报错 ---
-if 'display_df' in locals() and display_df is not None:
-    
-    # 统一预计算掩码
-    intercepted_mask = (display_df['predicted_prob'] >= threshold) & (display_df['is_high_risk'] == 1)
-    total_escaped_mask = (display_df['predicted_prob'] < threshold) & (display_df['is_high_risk'] == 1)
-    total_potential_claims = display_df[display_df['is_high_risk'] == 1]['past_claims_amount'].sum()
+loss_curve_df = get_loss_curve_data(df_fe)
 
-    # 计算核心 KPI 指标
-    intercepted_claims = display_df[intercepted_mask]['past_claims_amount'].sum()
-    total_escaped_claims = display_df[total_escaped_mask]['past_claims_amount'].sum()
-    loss_ratio_improvement = (intercepted_claims / total_potential_claims) * 100 if total_potential_claims > 0 else 0
-
-    # --- KPI 卡片区域 ---
-    kpi1, kpi2, kpi3 = st.columns(3)
-    with kpi1:
-        st.metric(label="📊 Active Portfolio Size", value=f"{len(display_df):,} Policies")
-    with kpi2:
-        st.metric(label="💸 Intercepted Claims Value", value=f"${intercepted_claims:,.0f}")
-    with kpi3:
-        st.metric(
-            label="📉 Loss Ratio Improvement", 
-            value=f"{loss_ratio_improvement:.1f}%", 
-            delta=f"{loss_ratio_improvement - 30:.1f}% vs Target",
-            delta_color="normal"
-        )
-
-    st.markdown("---")
-    st.subheader("📉 Threshold Optimization: Risk Leakage Curve")
-
-    # --- 绘制曲线 ---
-    loss_curve_df = get_loss_curve_data(display_df)
-    fig_curve = px.line(
-        loss_curve_df, x='Threshold', y='Claims_Leakage',
-        markers=True,
-        labels={'Claims_Leakage': 'Total Claims Leakage ($)', 'Threshold': 'Underwriting Threshold'},
-        title="Optimal Threshold Search: Where Risk Leakage Minimizes"
-    )
-    fig_curve.add_vline(x=threshold, line_dash="dash", line_color="red", annotation_text="Current")
-    fig_curve.add_vrect(x0=0.30, x1=0.45, fillcolor="#A4CE4E", opacity=0.3, line_width=0)
-    fig_curve.update_layout(plot_bgcolor='white', paper_bgcolor='white', height=300)
-
-    st.plotly_chart(fig_curve, use_container_width=True)
-
-    st.markdown("""
-    **Operational Strategy:**
-    *   **Threshold Calibration**: The **0.30–0.45 zone** represents our 'Strategic Control Zone'. 
-    *   **Risk Mitigation**: Adjusting thresholds below 0.45 significantly cuts unmanaged Claims Leakage.
-    *   **Tri-Tier Routing**: 
-        *   **< 0.30**: Straight-through processing (Auto-approve).
-        *   **0.30–0.45**: Risk-based pricing (Surcharge).
-        *   **> 0.45**: Deep-dive underwriting (Manual Review).
-    """)
+# 联动过滤
+if selected_policy != "All Policies":
+    display_df = df_fe[df_fe['policy_type_orig'] == selected_policy].copy()
 else:
-    st.info("数据正在加载中，请确保侧边栏已完成筛选设置。")
+    display_df = df_fe.copy()
+
+# 根据阈值判定分类
+display_df['dynamic_pred'] = (display_df['predicted_prob'] >= threshold).astype(int)
+
+# ==========================================
+# 5. 看板核心区域一：高管 KPI 看板 (Business KPIs)
+# ==========================================
+fn_mask = (display_df['is_high_risk'] == 1) & (display_df['dynamic_pred'] == 0)
+total_escaped_claims = display_df[fn_mask]['past_claims_amount'].sum()
+total_portfolio_claims = display_df['past_claims_amount'].sum()
+
+# 敏感度 (Recall)
+simulated_recall = (
+    ((display_df['is_high_risk'] == 1) & (display_df['dynamic_pred'] == 1)).sum() / 
+    (display_df['is_high_risk'] == 1).sum()
+)
+
+# 赔付控制比例
+claim_exposure_ratio = (total_escaped_claims / total_portfolio_claims) * 100
+
+kpi1, kpi2, kpi3 = st.columns(3)
+with kpi1:
+    st.metric(label="📊 Active Portfolio Size", value=f"{len(display_df):,} Policyholders")
+with kpi2:
+    st.metric(
+        label="🎯 Underwriting Sensitivity (Recall)", 
+        value=f"{simulated_recall*100:.2f}%",
+        delta=f"{(simulated_recall - 0.70)*100:.2f}% vs Standard Baseline" if threshold < 0.5 else "Higher Risk Leaking"
+    )
+with kpi3:
+    st.metric(
+        label="💸 Claims Leakage (Unmanaged Loss)", 
+        value=f"${total_escaped_claims:,.2f}",
+        delta=f"{claim_exposure_ratio:.2f}% of Portfolio Claims",
+        delta_color="inverse"
+    )
+
+st.markdown("---")
 
 # ==========================================
 # 6. 看板核心区域二：多维深度图表（硬编码系数与重要性）
@@ -309,8 +286,7 @@ with col_left:
         
         fig_imp = px.bar(
             imp_df, x='Odds Ratio (OR)', y='Feature', orientation='h',
-            color='Odds Ratio (OR)', 
-            color_continuous_scale=[[0, "#A4CE4E"], [1, "#0061A0"]], # 绿色到蓝色的渐变
+            color='Odds Ratio (OR)', color_continuous_scale='RdBu_r',
             text_auto='.4f',
             title="Logistic Regression Odds Ratios (OR > 1.0 is Risk Multiplier)"
         )
@@ -324,7 +300,7 @@ with col_left:
         
         fig_imp = px.bar(
             imp_df, x='Relative Importance', y='Feature', orientation='h',
-            color_discrete_map={0: "#0061A0", 1: "#A4CE4E"},
+            color='Relative Importance', color_continuous_scale='Blues',
             text_auto='.4f',
             title="Random Forest Relative Feature Importance Weights (True Model Outputs)"
         )
@@ -346,6 +322,55 @@ with col_right:
     )
     fig_scatter.update_layout(plot_bgcolor='white', paper_bgcolor='white', height=380)
     st.plotly_chart(fig_scatter, use_container_width=True)
+
+# ==========================================
+# 6. (新增) 收益曲线可视化 - 放在图表下方
+# ==========================================
+st.markdown("---")
+st.subheader("📉 Threshold Optimization: Risk Leakage Curve")
+
+# 计算数据
+@st.cache_data
+def get_loss_curve_data(df):
+    thresholds = np.linspace(0.1, 0.9, 20)
+    leakage_values = []
+    for t in thresholds:
+        fn_mask = (df['is_high_risk'] == 1) & (df['predicted_prob'] < t)
+        leakage = df[fn_mask]['past_claims_amount'].sum()
+        leakage_values.append(leakage)
+    return pd.DataFrame({'Threshold': thresholds, 'Claims_Leakage': leakage_values})
+
+loss_curve_df = get_loss_curve_data(df_fe)
+
+# 绘图
+fig_curve = px.line(
+    loss_curve_df, x='Threshold', y='Claims_Leakage',
+    markers=True,
+    labels={'Claims_Leakage': 'Total Claims Leakage ($)', 'Threshold': 'Underwriting Threshold'},
+    title="Optimal Threshold Search: Where Risk Leakage Minimizes"
+)
+fig_curve.add_vline(x=threshold, line_dash="dash", line_color="red", annotation_text="Current")
+# 将原来的 0.55-0.60 替换为新的 0.30-0.45 控制区
+fig_curve.add_vrect(
+    x0=0.30, x1=0.45, 
+    fillcolor="#48bb78", # 绿色高亮
+    opacity=0.2, 
+    line_width=0, 
+    annotation_text="Strategic Control Zone"
+)
+fig_curve.update_layout(plot_bgcolor='white', paper_bgcolor='white', height=300)
+
+st.plotly_chart(fig_curve, use_container_width=True)
+
+st.markdown("""
+**Operational Strategy:**
+*   **Threshold Calibration**: The **0.30–0.45 zone** represents our 'Strategic Control Zone'. 
+*   **Risk Mitigation**: Adjusting thresholds below 0.45 significantly cuts unmanaged Claims Leakage.
+*   **Tri-Tier Routing**: 
+    *   **< 0.30**: Straight-through processing (Auto-approve).
+    *   **0.30–0.45**: Risk-based pricing (Surcharge).
+    *   **> 0.45**: Deep-dive underwriting (Manual Review).
+""")
 
 # ==========================================
 # 7. 看板核心区域三：新增特色组件——特征血统与分箱诊断诊断（Q1 & Q2 & 多重共线性）
