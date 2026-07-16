@@ -11,7 +11,7 @@ from sklearn.model_selection import train_test_split
 # ==========================================
 # 1. 页面配置与全局商务化样式
 # ==========================================
-st.set_page_config(page_title="MetLife Underwriting & Risk Sandbox v2.0", layout="wide")
+st.set_page_config(page_title="MetLife Risk Sandbox v2.0", layout="wide")
 
 st.markdown("""
     <style>
