@@ -314,6 +314,14 @@ customer_row = display_df[display_df['customer_id'] == search_id].iloc[0]
 c_col1, c_col2, c_col3, c_col4 = st.columns(4)
 # 修改后（使用正确的列名 'age'）:
 c_coll.metric("Customer Age (Raw / Grouped)", f"{int(customer_row['age'])} (Tier {int(customer_row['age_group'])})")
+# 假设 selected_customer_id 是通过 st.selectbox 获取的
+selected_customer_id = st.selectbox("Search Customer Identifier (ID):", options=df_fe['customer_id'].unique())
+
+# 必须先执行这一行，定义 customer_row，否则会报 NameError
+customer_row = df_fe[df_fe['customer_id'] == selected_customer_id].iloc[0]
+
+# 之后再调用你的 metric
+c_coll.metric("Customer Age (Raw / Grouped)", f"{int(customer_row['age'])} (Tier {int(customer_row['age_group'])})")
 c_col2.metric("Health Score (Objective)", f"{customer_row['health_score']:.1f} / 100")
 c_col3.metric("BMI Index (Raw / Grouped)", f"{customer_row['raw_bmi']:.2f} (Tier {int(customer_row['bmi_tier'])})")
 c_col4.metric("Model Risk Probability", f"{customer_row['predicted_prob']*100:.1f}%")
