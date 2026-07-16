@@ -364,7 +364,7 @@ def get_loss_curve_data(df, current_threshold):
     
     return pd.DataFrame({'Threshold': thresholds, 'Claims_Leakage': leakage_values})
 # 使用过滤后的 display_df 进行计算
-loss_curve_df = get_loss_curve_data(display_df)
+loss_curve_df = get_loss_curve_data(display_df, threshold)
 
 # 绘图
 fig_curve = px.line(
