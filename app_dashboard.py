@@ -221,29 +221,6 @@ def get_hardcoded_predictions(data, model_type):
 # 计算并注入概率
 df_fe['predicted_prob'] = get_hardcoded_predictions(df_fe, selected_model_type)
 
-# ==========================================
-# 动态计算收益曲线数据
-# ==========================================
-# --- 6. 修改曲线函数 ---
-@st.cache_data
-def get_loss_curve_data(df):
-    thresholds = np.linspace(0.1, 0.9, 20)
-    leakage_values = []
-    
-    # 始终计算当前 df 下的总风险金额，以保持口径一致
-    total_potential = df[df['is_high_risk'] == 1]['past_claims_amount'].sum()
-    
-    for t in thresholds:
-        # 这里逻辑必须与 KPI 部分的 'total_escaped_mask' 逻辑一致
-        fn_mask = (df['predicted_prob'] < t) & (df['is_high_risk'] == 1)
-        leakage = df[fn_mask]['past_claims_amount'].sum()
-        leakage_values.append(leakage)
-        
-    return pd.DataFrame({'Threshold': thresholds, 'Claims_Leakage': leakage_values})
-
-# 调用时，直接传入被侧边栏过滤后的 display_df
-loss_curve_df = get_loss_curve_data(display_df)
-
 # ==============================================================================
 # 5 & 6. 整合 KPI 计算与收益曲线逻辑 (统一数据口径)
 # ==============================================================================
