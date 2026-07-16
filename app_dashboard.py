@@ -350,16 +350,26 @@ fig_curve = px.line(
     title="Optimal Threshold Search: Where Risk Leakage Minimizes"
 )
 fig_curve.add_vline(x=threshold, line_dash="dash", line_color="red", annotation_text="Current")
-fig_curve.add_vrect(x0=0.55, x1=0.60, fillcolor="green", opacity=0.1, line_width=0, annotation_text="Optimal Range")
+# 将原来的 0.55-0.60 替换为新的 0.30-0.45 控制区
+fig_curve.add_vrect(
+    x0=0.30, x1=0.45, 
+    fillcolor="#48bb78", # 绿色高亮
+    opacity=0.2, 
+    line_width=0, 
+    annotation_text="Strategic Control Zone"
+)
 fig_curve.update_layout(plot_bgcolor='white', paper_bgcolor='white', height=300)
 
 st.plotly_chart(fig_curve, use_container_width=True)
 
 st.markdown("""
-**Optimization Recommendations:**
-*   Trend Analysis: Claims Leakage demonstrates a significant non-linear downward trend as the underwriting threshold is reduced.
-*   Optimal Range: The highlighted green zone (0.55 – 0.60) represents the theoretical "sweet spot," effectively balancing underwriting rejection rates against risk exposure.
-*   Current Status: Compare the current threshold (red dashed line) with the optimal range; if positioned in the higher-risk zone, consider a gradual adjustment toward the left to further mitigate unmanaged loss.
+**Operational Strategy:**
+*   **Threshold Calibration**: The **0.30–0.45 zone** represents our 'Strategic Control Zone'. 
+*   **Risk Mitigation**: Adjusting thresholds below 0.45 significantly cuts unmanaged Claims Leakage[cite: 1].
+*   **Tri-Tier Routing**: 
+    *   **< 0.30**: Straight-through processing (Auto-approve).
+    *   **0.30–0.45**: Risk-based pricing (Surcharge)[cite: 1, 2].
+    *   **> 0.45**: Deep-dive underwriting (Manual Review)[cite: 2].
 """)
 
 # ==========================================
