@@ -268,10 +268,14 @@ kpi1, kpi2, kpi3 = st.columns(3)
 with kpi1:
     st.metric(label="📊 Active Portfolio Size", value=f"{len(display_df):,} Policyholders")
 with kpi2:
+    # 增加定义悬停文字的变量
+    baseline_help_text = "Standard Baseline: Refers to the historical benchmark of 70% sensitivity (Recall) achieved by the previous manual underwriting protocol."
+    
     st.metric(
         label="🎯 Underwriting Sensitivity (Recall)", 
         value=f"{simulated_recall*100:.2f}%",
-        delta=f"{(simulated_recall - 0.70)*100:.2f}% vs Standard Baseline" if threshold < 0.5 else "Higher Risk Leaking"
+        delta=f"{(simulated_recall - 0.70)*100:.2f}% vs Standard Baseline" if threshold < 0.5 else "Higher Risk Leaking",
+        help=baseline_help_text  # 这一行就是添加悬停功能的关键
     )
 with kpi3:
     st.metric(
