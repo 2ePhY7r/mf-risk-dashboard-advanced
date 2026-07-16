@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 # ==========================================
 # 1. 页面配置与全局商务化样式
 # ==========================================
-st.set_page_config(page_title="Mf Risk Sandbox", layout="wide")
+st.set_page_config(page_title="Optimized MetLife Risk Sandbox", layout="wide")
 
 st.markdown("""
     <style>
@@ -33,7 +33,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🛡️ Mf Premium Risk Optimization Sandbox")
+st.title("🛡️ MetLife Premium Risk Optimization Sandbox")
 st.caption("Enhanced with Clinical Binning Guidelines, Advanced Feature Engineering, and Dual-Model Benchmarking (LR vs. RF).")
 st.markdown("---")
 
