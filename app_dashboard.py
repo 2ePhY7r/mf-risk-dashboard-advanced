@@ -11,25 +11,31 @@ st.set_page_config(page_title="MetLife Risk Sandbox", layout="wide")
 
 st.markdown("""
     <style>
-    /* 全局背景色 */
-    .main { background-color: #F8F9FA; }
+    /* 基础背景色 */
+    .stApp { background-color: #FFFFFF; }
     
-    /* 标题样式：MetLife Blue */
-    h1 { color: #0061A0 !important; font-family: 'Segoe UI', Arial, sans-serif; font-weight: 700; }
-    h2, h3 { color: #0061A0 !important; font-family: 'Segoe UI', Arial, sans-serif; }
+    /* 标题与文字颜色 */
+    h1, h2, h3 { 
+        color: #0061A0 !important; 
+        font-family: 'Segoe UI', sans-serif !important; 
+        font-weight: 700;
+    }
+    .main p, .main label { color: #333333 !important; }
     
-    /* 指标看板样式：增加边框圆角 */
-    div[data-testid="stMetricValue"] { font-size: 28px !important; color: #0061A0 !important; font-weight: 700; }
-    div[data-testid="stMetricDelta"] { color: #555555 !important; }
+    /* 卡片容器：增加阴影与圆角，更显专业 */
+    div[data-testid="stMetricValue"] { color: #0061A0 !important; }
+    div[data-testid="stVerticalBlock"] > div:has([data-testid="stMetricValue"]) {
+        border: 1px solid #E0E0E0;
+        border-radius: 10px;
+        background-color: #FAFAFA;
+        padding: 15px;
+    }
     
-    /* 按钮与高亮区域：MetLife Green */
-    .stSlider [data-baseweb="slider"] { accent-color: #A4CE4E; }
+    /* 滑块控件使用标志性青柠绿 */
+    .stSlider [data-baseweb="slider"] { accent-color: #A4CE4E !important; }
     
-    /* 成功与错误提示框颜色匹配 */
-    .stAlert-success { border-left: 5px solid #A4CE4E !important; }
-    
-    /* 自定义边框与卡片容器 */
-    .css-1r6slp0 { border: 1px solid #E0E0E0; border-radius: 8px; padding: 15px; }
+    /* 侧边栏背景调整 */
+    [data-testid="stSidebar"] { background-color: #F4F4F4 !important; }
     </style>
 """, unsafe_allow_html=True)
 
