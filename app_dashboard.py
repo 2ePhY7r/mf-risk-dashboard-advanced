@@ -262,11 +262,14 @@ simulated_recall = (((display_df['is_high_risk'] == 1) & (display_df['dynamic_pr
 # 赔付控制比例
 claim_exposure_ratio = (total_escaped_claims / total_portfolio_claims) * 100
 
-# 【新增】：计算预估赔付率降低 (这里假设 baseline 的 Loss Ratio 为 65%)
-# 逻辑：当前漏损占比 vs 基准漏损占比的差值
+# 预估赔付率降低计算
 estimated_loss_ratio_reduction = (0.20 - (total_escaped_claims / total_portfolio_claims)) * 100
 
-# 修改为 4 列
+# 定义解释文本
+recall_help = "Based on the historical performance of the legacy manual underwriting protocol, which achieved a 70% detection rate (Recall) for high-risk claims."
+loss_ratio_help = "Calculated against the 20% target Loss Ratio threshold. This metric estimates the improvement in underwriting profitability by effectively filtering high-risk compound profiles."
+
+# 修改为 4 列布局
 kpi1, kpi2, kpi3, kpi4 = st.columns(4)
 
 with kpi1:
@@ -275,7 +278,8 @@ with kpi2:
     st.metric(
         label="🎯 Underwriting Sensitivity", 
         value=f"{simulated_recall*100:.2f}%",
-        delta=f"{(simulated_recall - 0.70)*100:.2f}% vs Baseline"
+        delta=f"{(simulated_recall - 0.70)*100:.2f}% vs Baseline",
+        help=recall_help  # 新增解释
     )
 with kpi3:
     st.metric(
@@ -285,15 +289,14 @@ with kpi3:
         delta_color="inverse"
     )
 with kpi4:
-    # 新增的第四个卡片
     st.metric(
         label="📉 Est. Loss Ratio Impact", 
         value=f"{estimated_loss_ratio_reduction:.2f}%", 
-        delta="Improved" if estimated_loss_ratio_reduction > 0 else "Degraded"
+        delta="Improved" if estimated_loss_ratio_reduction > 0 else "Degraded",
+        help=loss_ratio_help  # 新增解释
     )
 
 st.markdown("---")
-
 # ==========================================
 # 6. 看板核心区域二：多维深度图表（硬编码系数与重要性）
 # ==========================================
